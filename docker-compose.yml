@@ -1,0 +1,15 @@
+services:
+  mt5:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mt5
+    ports:
+      - "3000:3000" # MetaTrader5 Web Interface
+      - "8001:8001" # RPyC Server for Python MetaTrader Library
+    volumes:
+      - ./config:/config
+    environment:
+      CUSTOM_USER: your_username # Replace with your desired username
+      PASSWORD: your_secure_password # Replace with your desired password
+    restart: unless-stopped
