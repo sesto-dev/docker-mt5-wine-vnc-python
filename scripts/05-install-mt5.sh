@@ -1,8 +1,8 @@
 #!/bin/bash
 
-source /scripts/02-common.sh
+source /scripts/00-config.sh
 
-log_message "RUNNING 03-install-mt5.sh"
+log_message "RUNNING 05-install-mt5.sh"
 
 # Check if MetaTrader 5 is installed
 if [ -e "$mt5file" ]; then

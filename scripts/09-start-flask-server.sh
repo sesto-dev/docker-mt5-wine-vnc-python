@@ -1,9 +1,8 @@
 #!/bin/bash
 
-# Source common variables and functions
-source /scripts/02-common.sh
+source /scripts/00-config.sh
 
-log_message "RUNNING 07-start-flask-server.sh"
+log_message "RUNNING 09-start-flask-server.sh"
 
 log_message "INFO" "Starting Flask server..."
 

@@ -1,6 +1,8 @@
 #!/bin/bash
 
-source /scripts/02-common.sh
+source /scripts/00-config.sh
+
+log_message "RUNNING 04-install-mono.sh"
 
 # Install Mono if not present
 if [ ! -e "/config/.wine/drive_c/windows/mono" ]; then
@@ -20,6 +22,3 @@ if [ ! -e "/config/.wine/drive_c/windows/mono" ]; then
 else
     log_message "INFO" "Mono is already installed."
 fi
-
-# Initialize Wine configuration
-winecfg

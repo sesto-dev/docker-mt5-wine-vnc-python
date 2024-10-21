@@ -26,6 +26,3 @@ is_python_package_installed() {
     python3 -c "import pkg_resources; pkg_resources.require('$1')" 2>/dev/null
     return $?
 }
-
-# Mute Unnecessary Wine Errors
-export WINEDEBUG=-all,err-toolbar,fixme-all

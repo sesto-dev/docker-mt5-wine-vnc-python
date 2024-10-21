@@ -12,6 +12,6 @@ services:
     volumes:
       - ./config:/config
     environment:
-      CUSTOM_USER: your_username # Replace with your desired username
-      PASSWORD: your_secure_password # Replace with your desired password
+      CUSTOM_USER: admin # Replace with your desired username
+      PASSWORD: 1234 # Replace with your desired password
     restart: unless-stopped

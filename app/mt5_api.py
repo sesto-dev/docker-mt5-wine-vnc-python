@@ -4,6 +4,7 @@ import logging
 import json
 from pythonjsonlogger import jsonlogger
 from prometheus_client import Counter, Histogram, generate_latest
+from time import sleep
 
 mt5server_port = 18812
 
@@ -39,30 +40,46 @@ def log_response_info(response):
     })
     return response
 
-try:
-    logger.info(f"Attempting to connect to MT5 server at localhost:{mt5server_port}")
-    mt5 = MetaTrader5(
-        host='localhost',
-        port=mt5server_port
-    )
-    if not mt5.initialize():
-        logger.error(f"Failed to initialize MT5: {mt5.last_error()}")
-        mt5 = None
-    else:
-        logger.info("Successfully connected to MT5 server")
-except Exception as e:
-    logger.error(f"Failed to connect to MT5 server: {str(e)}")
-    logger.error(f"Exception type: {type(e).__name__}")
-    logger.error(f"Exception args: {e.args}")
-    mt5 = None
+mt5 = None
+max_retries = 5
+retry_delay = 10
 
-# Add a health check endpoint
+for attempt in range(max_retries):
+    try:
+        logger.info(f"Attempt {attempt + 1} to connect to MT5 server at localhost:{mt5server_port}")
+        mt5 = MetaTrader5(host='localhost', port=mt5server_port)
+        if mt5.initialize():
+            logger.info("Successfully connected to MT5 server")
+            break
+        else:
+            logger.error(f"Failed to initialize MT5: {mt5.last_error()}")
+    except Exception as e:
+        logger.error(f"Failed to connect to MT5 server: {str(e)}")
+        logger.error(f"Exception type: {type(e).__name__}")
+        logger.error(f"Exception args: {e.args}")
+    
+    if attempt < max_retries - 1:
+        logger.info(f"Retrying in {retry_delay} seconds...")
+        sleep(retry_delay)
+    else:
+        logger.error("Max retries reached. Unable to connect to MT5 server.")
+
+# Update the health check endpoint
 @app.route('/health')
 def health_check():
+    mt5_status = "disconnected"
+    if mt5 is not None:
+        try:
+            if mt5.initialize():
+                mt5_status = "connected and initialized"
+            else:
+                mt5_status = "connected but not initialized"
+        except:
+            mt5_status = "connection error"
+    
     return jsonify({
         "status": "healthy",
-        "mt5_connected": mt5 is not None,
-        "mt5_initialized": mt5.initialize() if mt5 is not None else False
+        "mt5_status": mt5_status
     }), 200
 
 @app.route('/metrics')
