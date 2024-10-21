@@ -1,69 +1,31 @@
 #!/bin/bash
 
-# Configuration variables
-mt5file='/config/.wine/drive_c/Program Files/MetaTrader 5/terminal64.exe'
-WINEPREFIX='/config/.wine'
-wine_executable="wine"
-metatrader_version="5.0.36"
-mt5server_port="8001"
-mono_url="https://dl.winehq.org/wine/wine-mono/8.0.0/wine-mono-8.0.0-x86.msi"
-python_url="https://www.python.org/ftp/python/3.9.0/python-3.9.0.exe"
+# Set variables
 mt5setup_url="https://download.mql5.com/cdn/web/metaquotes.software.corp/mt5/mt5setup.exe"
+mt5file="/config/.wine/drive_c/Program Files/MetaTrader 5/terminal64.exe"
+python_url="https://www.python.org/ftp/python/3.9.13/python-3.9.13-amd64.exe"
+wine_executable="wine"
+metatrader_version="5.0.36"  # or whatever version you're using
+mt5server_port=18812  # Default port for mt5linux
 
-# Function to display a graphical message
+# Function to show messages
 show_message() {
-    echo $1
-}
-
-# Function to check if a dependency is installed
-check_dependency() {
-    if ! command -v $1 &> /dev/null; then
-        echo "$1 is not installed. Please install it to continue."
-        exit 1
-    fi
-}
-
-create_directory() {
-    if [ ! -d "$1" ]; then
-        mkdir -p "$1"
-        if [ $? -ne 0 ]; then
-            echo "Failed to create directory $1. Check permissions."
-            exit 1
-        fi
-    fi
-}
-
-# Function to check if a Python package is installed
-is_python_package_installed() {
-    python3 -c "import pkg_resources; exit(not pkg_resources.require('$1'))" 2>/dev/null
-    return $?
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1"
 }
 
 # Function to check if a Python package is installed in Wine
 is_wine_python_package_installed() {
-    $wine_executable python -c "import pkg_resources; exit(not pkg_resources.require('$1'))" 2>/dev/null
+    $wine_executable python -c "import pkg_resources; pkg_resources.require('$1')" 2>/dev/null
     return $?
 }
 
-# Check for necessary dependencies
-check_dependency "curl"
-check_dependency "$wine_executable"
+# Function to check if a Python package is installed in Linux
+is_python_package_installed() {
+    python3 -c "import pkg_resources; pkg_resources.require('$1')" 2>/dev/null
+    return $?
+}
 
-# Ensure /config/.wine/drive_c exists
-create_directory "/config/.wine/drive_c"
-
-# Install Mono if not present
-if [ ! -e "/config/.wine/drive_c/windows/mono" ]; then
-    show_message "[1/7] Downloading and installing Mono..."
-    curl -o /config/.wine/drive_c/mono.msi $mono_url
-    WINEDLLOVERRIDES=mscoree=d $wine_executable msiexec /i /config/.wine/drive_c/mono.msi /qn
-    rm /config/.wine/drive_c/mono.msi
-    show_message "[1/7] Mono installed."
-else
-    show_message "[1/7] Mono is already installed."
-fi
-
-# Check if MetaTrader 5 is already installed
+# Check if MetaTrader 5 is installed
 if [ -e "$mt5file" ]; then
     show_message "[2/7] File $mt5file already exists."
 else
@@ -87,7 +49,6 @@ else
     show_message "[4/7] File $mt5file is not installed. MT5 cannot be run."
 fi
 
-
 # Install Python in Wine if not present
 if ! $wine_executable python --version 2>/dev/null; then
     show_message "[5/7] Installing Python in Wine..."
@@ -99,38 +60,48 @@ else
     show_message "[5/7] Python is already installed in Wine."
 fi
 
+show_message "Linux Python version:"
+python3 --version
+show_message "Wine Python version:"
+$wine_executable python --version
+
 # Upgrade pip and install required packages
 show_message "[6/7] Installing Python libraries"
 $wine_executable python -m pip install --upgrade --no-cache-dir pip
+
 # Install MetaTrader5 library in Windows if not installed
 show_message "[6/7] Installing MetaTrader5 library in Windows"
 if ! is_wine_python_package_installed "MetaTrader5==$metatrader_version"; then
     $wine_executable python -m pip install --no-cache-dir MetaTrader5==$metatrader_version
 fi
+
 # Install mt5linux library in Windows if not installed
 show_message "[6/7] Checking and installing mt5linux library in Windows if necessary"
 if ! is_wine_python_package_installed "mt5linux"; then
     $wine_executable python -m pip install --no-cache-dir mt5linux
+    if [ $? -ne 0 ]; then
+        show_message "Failed to install mt5linux in Wine Python environment"
+    fi
 fi
 
 # Install mt5linux library in Linux if not installed
 show_message "[6/7] Checking and installing mt5linux library in Linux if necessary"
 if ! is_python_package_installed "mt5linux"; then
-    pip install --upgrade --no-cache-dir mt5linux
+    python3 -m pip install --upgrade --no-cache-dir mt5linux
+    if [ $? -ne 0 ]; then
+        show_message "Failed to install mt5linux in Linux Python environment"
+    fi
 fi
 
-# Install pyxdg library in Linux if not installed
-show_message "[6/7] Checking and installing pyxdg library in Linux if necessary"
-if ! is_python_package_installed "pyxdg"; then
-    pip install --upgrade --no-cache-dir pyxdg
-fi
-
-# Start the MT5 server on Linux
+# Start the MT5 server on Windows side
 show_message "[7/7] Starting the mt5linux server..."
-python3 -m mt5linux --host 0.0.0.0 -p $mt5server_port -w $wine_executable python.exe &
+$wine_executable python -m mt5linux $wine_executable python.exe > /tmp/mt5linux_server.log 2>&1 &
 
 # Give the server some time to start
-sleep 5
+sleep 25
+
+show_message "MT5Linux server log:"
+cat /tmp/mt5linux_server.log
 
 # Check if the server is running
 if ss -tuln | grep ":$mt5server_port" > /dev/null; then
@@ -138,3 +109,10 @@ if ss -tuln | grep ":$mt5server_port" > /dev/null; then
 else
     show_message "[7/7] Failed to start the mt5linux server on port $mt5server_port."
 fi
+
+# Start the MT5 API server
+show_message "[8/8] Starting the Flask API server..."
+python3 /metatrader/mt5_api.py &
+
+# Keep the script running
+tail -f /dev/null
