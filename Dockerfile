@@ -13,8 +13,9 @@ RUN apt-get install -y \
     python3-pip \
     wget \
     python3-pyxdg \
+    netcat \
     && pip3 install --upgrade pip \
-    && pip3 install flask pandas rpyc
+    && pip3 install flask pandas rpyc python-json-logger prometheus_client
 
 # Add WineHQ repository key and APT source
 RUN wget -q https://dl.winehq.org/wine-builds/winehq.key \
@@ -35,12 +36,16 @@ RUN apt-get install --install-recommends -y \
 # Stage 2: Final image
 FROM base
 
-# Copy the metatrader directory and convert start.sh to Unix format
-COPY metatrader /metatrader
-RUN dos2unix /metatrader/start.sh
+# Copy the scripts directory and convert start.sh to Unix format
+COPY app /app
+COPY scripts /scripts
+RUN dos2unix /scripts/*.sh && \
+    chmod +x /scripts/*.sh
 
 COPY /root /
-RUN chmod +x /metatrader/start.sh
+RUN touch /var/log/mt5_setup.log && \
+    chown abc:abc /var/log/mt5_setup.log && \
+    chmod 644 /var/log/mt5_setup.log
 
-EXPOSE 3000 5000 8001
+EXPOSE 3000 5000 8001 18812
 VOLUME /config

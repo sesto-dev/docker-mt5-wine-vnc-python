@@ -1,0 +1,29 @@
+#!/bin/bash
+
+source /scripts/02-common.sh
+
+log_message "RUNNING 03-install-mt5.sh"
+
+# Check if MetaTrader 5 is installed
+if [ -e "$mt5file" ]; then
+    log_message "INFO" "File $mt5file already exists."
+else
+    log_message "INFO" "File $mt5file is not installed. Installing..."
+
+    # Set Windows 10 mode in Wine and download and install MT5
+    $wine_executable reg add "HKEY_CURRENT_USER\\Software\\Wine" /v Version /t REG_SZ /d "win10" /f
+    log_message "INFO" "Downloading MT5 installer..."
+    curl -o /config/.wine/drive_c/mt5setup.exe $mt5setup_url
+    log_message "INFO" "Installing MetaTrader 5..."
+    $wine_executable "/config/.wine/drive_c/mt5setup.exe" "/auto" &
+    wait
+    rm -f /config/.wine/drive_c/mt5setup.exe
+fi
+
+# Recheck if MetaTrader 5 is installed
+if [ -e "$mt5file" ]; then
+    log_message "INFO" "File $mt5file is installed. Running MT5..."
+    $wine_executable "$mt5file" &
+else
+    log_message "ERROR" "File $mt5file is not installed. MT5 cannot be run."
+fi
