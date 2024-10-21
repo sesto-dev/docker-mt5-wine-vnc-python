@@ -22,8 +22,8 @@ sleep 2
 # Check if the Flask server is running
 if ps -p $FLASK_PID > /dev/null
 then
-    log_success "Flask server started successfully with PID $FLASK_PID"
+    log_message "INFO" "Flask server started successfully with PID $FLASK_PID"
 else
-    log_error "Failed to start Flask server"
+    log_message "ERROR" "Failed to start Flask server"
     exit 1
 fi

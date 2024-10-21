@@ -1,8 +1,14 @@
 # Stage 1: Base image with apt packages
 FROM ghcr.io/linuxserver/baseimage-kasmvnc:debianbullseye AS base
 
-ENV TITLE=mt
+ENV TITLE=MetaTrader
+ENV WINEARCH=win64
 ENV WINEPREFIX="/config/.wine"
+
+# Ensure the directory exists with correct permissions
+RUN mkdir -p /config/.wine && \
+    chown -R abc:abc /config/.wine && \
+    chmod -R 755 /config/.wine
 
 # Update package lists and upgrade packages
 RUN apt-get update && apt-get upgrade -y
