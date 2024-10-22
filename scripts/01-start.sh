@@ -11,7 +11,7 @@ source /scripts/02-common.sh
 
 # Start servers
 /scripts/07-start-mt5-server.sh
-/scripts/09-start-wine-flask.sh
+/scripts/08-start-wine-flask.sh
 
 # Keep the script running
 tail -f /dev/null

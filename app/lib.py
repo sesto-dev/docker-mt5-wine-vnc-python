@@ -1,4 +1,4 @@
-from mt5linux import MetaTrader5 as mt5
+import MetaTrader5 as mt5
 from datetime import datetime, timedelta
 from typing import List, Dict
 import pandas as pd

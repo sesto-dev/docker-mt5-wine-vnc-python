@@ -21,8 +21,7 @@ RUN apt-get install -y \
     wget \
     python3-pyxdg \
     netcat \
-    && pip3 install --upgrade pip \
-    && pip3 install flask pandas rpyc python-json-logger prometheus_client
+    && pip3 install --upgrade pip
 
 # Add WineHQ repository key and APT source
 RUN wget -q https://dl.winehq.org/wine-builds/winehq.key > /dev/null 2>&1\
