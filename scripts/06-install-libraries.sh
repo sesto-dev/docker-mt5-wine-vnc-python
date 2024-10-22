@@ -7,7 +7,7 @@ log_message "RUNNING" "06-install-libraries.sh"
 # Install MetaTrader5 library in Windows if not installed
 log_message "INFO" "Installing MetaTrader5 library in Windows"
 if ! is_wine_python_package_installed "MetaTrader5==$metatrader_version"; then
-    $wine_executable python -m pip install --no-cache-dir MetaTrader5==$metatrader_version
+    $wine_executable python -m pip install --no-cache-dir flask MetaTrader5==$metatrader_version
 fi
 
 # Install mt5linux library in Windows if not installed

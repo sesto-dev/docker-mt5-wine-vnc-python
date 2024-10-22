@@ -4,6 +4,7 @@ FROM ghcr.io/linuxserver/baseimage-kasmvnc:debianbullseye AS base
 ENV TITLE=MetaTrader
 ENV WINEARCH=win64
 ENV WINEPREFIX="/config/.wine"
+ENV DISPLAY=:0
 
 # Ensure the directory exists with correct permissions
 RUN mkdir -p /config/.wine && \
@@ -53,5 +54,5 @@ RUN touch /var/log/mt5_setup.log && \
     chown abc:abc /var/log/mt5_setup.log && \
     chmod 644 /var/log/mt5_setup.log
 
-EXPOSE 3000 5000 8001 18812
+EXPOSE 3000 5000 5001 8001 18812
 VOLUME /config

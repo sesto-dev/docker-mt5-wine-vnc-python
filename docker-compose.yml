@@ -8,6 +8,7 @@ services:
       - "3000:3000" # MetaTrader5 Web Interface
       - "8001:8001" # RPyC Server for Python MetaTrader Library
       - "5000:5000" # MT5 API
+      - "5001:5001" # Flask API inside Wine
       - "18812:18812" # MT5Linux server
     volumes:
       - ./config:/config
