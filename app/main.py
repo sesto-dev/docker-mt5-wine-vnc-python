@@ -5,8 +5,7 @@ import json
 from pythonjsonlogger import jsonlogger
 from prometheus_client import Counter, Histogram, generate_latest
 from lib import (
-    fetch_data_pos,
-    fetch_data_range,
+    get_timeframe,
     send_market_order,
     close_position,
     close_all_positions,
@@ -16,6 +15,7 @@ from lib import (
     get_order_from_ticket
 )
 from datetime import datetime
+import pandas as pd
 import pytz
 
 app = Flask(__name__)
@@ -83,15 +83,18 @@ def get_symbol_info(symbol):
 @app.route('/fetch_data_pos', methods=['GET'])
 def fetch_data_pos_endpoint():
     symbol = request.args.get('symbol')
-    timeframe = request.args.get('timeframe')
+    timeframe = request.args.get('timeframe', type=str)
     bars = request.args.get('bars', type=int)
 
     if not symbol or not timeframe or bars is None:
         return jsonify({"error": "Missing required parameters: symbol, timeframe, bars"}), 400
 
-    data = fetch_data_pos(symbol, timeframe, bars)
+    data = mt5.copy_rates_from_pos(symbol, get_timeframe(timeframe), 0, bars)
     if data is not None:
-        return jsonify(data.to_dict()), 200
+        df = pd.DataFrame(data)
+        # Convert DataFrame to a list of dictionaries
+        data_dict = df.to_dict(orient='records')
+        return jsonify(data_dict), 200
     else:
         return jsonify({"error": "Failed to fetch data"}), 500
 
@@ -114,9 +117,12 @@ def fetch_data_range_endpoint():
     except Exception as e:
         return jsonify({"error": f"Invalid date format or timezone: {e}"}), 400
 
-    data = fetch_data_range(symbol, timeframe, from_date, to_date)
+    data = mt5.copy_rates_range(symbol, get_timeframe(timeframe), from_date, to_date)
     if data is not None:
-        return jsonify(data.to_dict()), 200
+        df = pd.DataFrame(data)
+        # Convert DataFrame to a list of dictionaries
+        data_dict = df.to_dict(orient='records')
+        return jsonify(data_dict), 200
     else:
         return jsonify({"error": "Failed to fetch data"}), 500
 

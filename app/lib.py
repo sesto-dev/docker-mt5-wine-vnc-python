@@ -2,20 +2,40 @@ import MetaTrader5 as mt5
 from datetime import datetime, timedelta
 from typing import List, Dict
 import pandas as pd
+from enum import Enum
 
-def fetch_data_pos(symbol: str, timeframe, bars: int) -> pd.DataFrame:
+class MT5Timeframe(Enum):
+    M1 = mt5.TIMEFRAME_M1       # 1-minute
+    M5 = mt5.TIMEFRAME_M5       # 5-minute
+    M15 = mt5.TIMEFRAME_M15     # 15-minute
+    M30 = mt5.TIMEFRAME_M30     # 30-minute
+    H1 = mt5.TIMEFRAME_H1       # 1-hour
+    H4 = mt5.TIMEFRAME_H4       # 4-hour
+    D1 = mt5.TIMEFRAME_D1       # daily
+    W1 = mt5.TIMEFRAME_W1       # weekly
+    MN1 = mt5.TIMEFRAME_MN1     # monthly
+
+
+def get_timeframe(timeframe_str: str) -> MT5Timeframe:
+    """
+    Converts a timeframe string to its corresponding MT5Timeframe enum member.
+
+    Args:
+        timeframe_str (str): The timeframe string (e.g., "M5").
+
+    Returns:
+        MT5Timeframe: The corresponding MT5Timeframe enum member.
+
+    Raises:
+        ValueError: If the timeframe string is invalid.
+    """
     try:
-        return mt5.copy_rates_from_pos(symbol, timeframe.value, 0, bars)
-    except Exception as e:
-        print(f"Exception fetching data for {symbol} on {timeframe}: {e}")
-        return None
-    
-def fetch_data_range(symbol: str, timeframe, from_date: datetime, to_date: datetime) -> pd.DataFrame:
-    try:
-        return mt5.copy_rates_range(symbol, timeframe.value, from_date, to_date)
-    except Exception as e:
-        print(f"Exception fetching data for {symbol} on {timeframe}: {e}")
-        return None
+        return MT5Timeframe[timeframe_str.upper()].value
+    except KeyError:
+        valid_timeframes = ', '.join([t.name for t in MT5Timeframe])
+        raise ValueError(
+            f"Invalid timeframe: '{timeframe_str}'. Valid options are: {valid_timeframes}."
+        )
 
 def send_market_order(symbol, volume, order_type, sl=0.0, tp=0.0,
                       deviation=20, comment='', magic=0, type_filling=mt5.ORDER_FILLING_IOC):

@@ -4,15 +4,43 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: mt5
-    ports:
-      - "3000:3000" # MetaTrader5 Web Interface
-      - "8001:8001" # RPyC Server for Python MetaTrader Library
-      - "5000:5000" # MT5 API
-      - "5001:5001" # Flask API inside Wine
-      - "18812:18812" # MT5Linux server
     volumes:
       - ./config:/config
-    environment:
-      CUSTOM_USER: admin # Replace with your desired username
-      PASSWORD: 1234 # Replace with your desired password
+    networks:
+      - traefik-public
+    env_file:
+      - .env
     restart: unless-stopped
+    labels:
+      # Enable Traefik for this service
+      - "traefik.enable=true"
+
+      # Router for vnc.mt5.${domain} (Port 3000)
+      - traefik.http.routers.vnc-mt5-http.rule=Host(`${VNC_DOMAIN}`)
+      - traefik.http.routers.vnc-mt5-http.entrypoints=http
+      - traefik.http.routers.vnc-mt5-http.middlewares=https-redirect
+
+      - traefik.http.routers.vnc-mt5-https.rule=Host(`${VNC_DOMAIN}`)
+      - traefik.http.routers.vnc-mt5-https.entrypoints=https
+      - traefik.http.routers.vnc-mt5-https.tls=true
+      - traefik.http.routers.vnc-mt5-https.tls.certresolver=le
+      - traefik.http.routers.vnc-mt5-https.service=vnc-mt5-service
+
+      - traefik.http.services.vnc-mt5-service.loadbalancer.server.port=3000
+
+      # Router for api.mt5.${domain} (Port 5001)
+      - traefik.http.routers.api-mt5.rule=Host(`${API_DOMAIN}`)
+      - traefik.http.routers.api-mt5.entrypoints=http
+      - traefik.http.routers.api-mt5-http.middlewares=https-redirect
+
+      - traefik.http.routers.api-mt5-https.rule=Host(`${API_DOMAIN}`)
+      - traefik.http.routers.api-mt5-https.entrypoints=https
+      - traefik.http.routers.api-mt5-https.tls=true
+      - traefik.http.routers.api-mt5-https.tls.certresolver=le
+      - traefik.http.routers.api-mt5-https.service=api-mt5-service
+
+      - traefik.http.services.api-mt5-service.loadbalancer.server.port=5001
+
+networks:
+  traefik-public:
+    external: true
