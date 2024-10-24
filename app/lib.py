@@ -77,13 +77,14 @@ def send_market_order(symbol, volume, order_type, sl=0.0, tp=0.0,
     order_result = mt5.order_send(request)
 
     if order_result is None:
-        error_code = mt5.last_error()
-        error_description = mt5.last_error_str()
+        error_code = get_last_error()
+        error_description = get_last_error_str()
         print(f"Order failed, error code: {error_code}, description: {error_description}")
         return None
     elif order_result.retcode != mt5.TRADE_RETCODE_DONE:
-        return None
-    
+        print(f"Order not completed, retcode: {order_result.retcode}")
+        return order_result
+
     print(f"Order successfully placed for {symbol}")
     return order_result
 
@@ -236,14 +237,14 @@ def get_positions(magic=None):
                                      'price_current', 'swap', 'profit', 'symbol', 'comment', 'external_id'])
     
 
-def get_deal_from_ticket(ticket, TIMEZONE, from_date=None, to_date=None):
+def get_deal_from_ticket(ticket, from_date=None, to_date=None):
     if not isinstance(ticket, int):
         print("Ticket must be an integer.")
         return None
 
     # Define default date range if not provided
     if from_date is None or to_date is None:
-        to_date = datetime.now(TIMEZONE)
+        to_date = datetime.now(mt5.TIMEZONE)
         from_date = to_date - timedelta(minutes=15)  # Adjust based on polling interval
 
     # Convert datetime to MT5 time (integer)
@@ -269,10 +270,10 @@ def get_deal_from_ticket(ticket, TIMEZONE, from_date=None, to_date=None):
         deal_details = {
             'ticket': ticket,
             'symbol': deals_df['symbol'].iloc[0],
-            'type': 'buy' if deals_df['type'].iloc[0] == mt5.DEAL_TYPE_BUY else 'sell',
+            'type': 'buy' if deals_df['type'].iloc[0] == 'DEAL_TYPE_BUY' else 'sell',
             'volume': deals_df['volume'].sum(),
-            'open_time': datetime.fromtimestamp(deals_df['time'].min(), tz=TIMEZONE),
-            'close_time': datetime.fromtimestamp(deals_df['time'].max(), tz=TIMEZONE),
+            'open_time': datetime.fromtimestamp(deals_df['time'].min(), tz=mt5.TIMEZONE),
+            'close_time': datetime.fromtimestamp(deals_df['time'].max(), tz=mt5.TIMEZONE),
             'open_price': deals_df['price'].iloc[0],
             'close_price': deals_df['price'].iloc[-1],
             'profit': deals_df['profit'].sum(),
@@ -300,3 +301,22 @@ def get_order_from_ticket(ticket):
     order_dict = order[0]._asdict()
 
     return order_dict
+
+
+# Shared Logic for Business Endpoints
+
+def get_last_error():
+    return mt5.last_error()
+
+def get_last_error_str():
+    error_code, error_str = mt5.last_error()
+    return error_str
+
+def get_positions_total():
+    return mt5.positions_total()
+
+def get_history_deals(from_timestamp, to_timestamp, position):
+    return mt5.history_deals_get(from_timestamp, to_timestamp, position=position)
+
+def get_history_orders(ticket):
+    return mt5.history_orders_get(ticket=ticket)
